@@ -20,6 +20,8 @@ console.log("WALLET_PRIVATE_KEY wallet address:", payoutWallet.address);
 app.use("/api/payments", require("./routes/payments"));
 app.use("/api/pending-orders", require("./routes/pendingOrders"));
 app.use("/api/orders", require("./routes/orders"));
+app.use("/api/urdc", require("./routes/urdc"));
+
 
 // ---------- Blockchain Listener ----------
 const { listenForUSDCPayments } = require("./services/blockchain");
