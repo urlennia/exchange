@@ -12,6 +12,9 @@ const URDC_ABI = [
   "function balanceOf(address account) view returns (uint256)"
 ];
 
+const { TREASURY_PRIVATE_KEY } = process.env;
+const wallet = new ethers.Wallet(TREASURY_PRIVATE_KEY, provider);
+
 const usdcContract = new ethers.Contract(process.env.USDC_ADDRESS, USDC_ABI, provider);
 const urdcContract = new ethers.Contract(process.env.URDC_ADDRESS, URDC_ABI, wallet);
 
