@@ -1,40 +1,25 @@
 // server.js
-
-console.log("TREASURY_PRIVATE_KEY length:", process.env.TREASURY_PRIVATE_KEY?.length);
-console.log("TREASURY_PRIVATE_KEY raw:", process.env.TREASURY_PRIVATE_KEY);
-
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
-const { ethers } = require("ethers"); 
+const { Wallet } = require("ethers");
 const { WebSocketServer } = require("ws");
-require("dotenv").config();
 
+// ---------- App Setup ----------
 const app = express();
 app.use(bodyParser.json());
 
-const { Wallet } = require("ethers");
-
-// Get the key from environment
+// ---------- Environment Variables ----------
 let privateKey = process.env.TREASURY_PRIVATE_KEY;
+if (!privateKey) throw new Error("TREASURY_PRIVATE_KEY not set in environment!");
 
-// Trim whitespace / remove accidental quotes
-privateKey = privateKey.trim().replace(/^"|"$/g, '');
+// Clean key
+privateKey = privateKey.trim().replace(/^"|"$/g, '').replace(/\s+/g, '');
+if (!privateKey.startsWith("0x")) privateKey = "0x" + privateKey;
 
-// Add 0x if missing
-if (!privateKey.startsWith("0x")) {
-  privateKey = "0x" + privateKey;
-}
-
-// Create the wallet
+// ---------- Wallet ----------
 const wallet = new Wallet(privateKey);
 console.log("Wallet address:", wallet.address);
-
-module.exports = {
-  wallet,
-  notifyPaymentConfirmed
-};
-
-
 
 // ---------- Routes ----------
 app.use("/api/payments", require("./routes/payments"));
@@ -44,14 +29,14 @@ app.use("/api/orders", require("./routes/orders"));
 // ---------- Blockchain Listener ----------
 const { listenForUSDCPayments } = require("./services/blockchain");
 
-// ---------- Start Server ----------
+// ---------- Server ----------
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  listenForUSDCPayments(); // Start blockchain listener
+  listenForUSDCPayments();
 });
 
-// ---------- WebSocket Setup ----------
+// ---------- WebSocket ----------
 const wss = new WebSocketServer({ server });
 const subscribers = {}; // walletAddress -> ws
 
@@ -72,28 +57,19 @@ wss.on("connection", (ws) => {
 
   ws.on("close", () => {
     for (const wallet in subscribers) {
-      if (subscribers[wallet] === ws) {
-        delete subscribers[wallet];
-        console.log(`❌ Unsubscribed: ${wallet}`);
-      }
+      if (subscribers[wallet] === ws) delete subscribers[wallet];
     }
   });
 });
 
-// ---------- Helper to notify frontend ----------
-function notifyPaymentConfirmed(wallet, urdcAmount) {
-  const ws = subscribers[wallet.toLowerCase()];
+// ---------- Helper ----------
+function notifyPaymentConfirmed(walletAddress, urdcAmount) {
+  const ws = subscribers[walletAddress.toLowerCase()];
   if (ws && ws.readyState === ws.OPEN) {
-    ws.send(
-      JSON.stringify({
-        type: "paymentConfirmed",
-        wallet,
-        urdcAmount,
-      })
-    );
-    console.log(`✅ Sent paymentConfirmed to ${wallet}`);
+    ws.send(JSON.stringify({ type: "paymentConfirmed", wallet: walletAddress, urdcAmount }));
+    console.log(`✅ Sent paymentConfirmed to ${walletAddress}`);
   }
 }
 
-
-
+// ---------- Exports ----------
+module.exports = { wallet, notifyPaymentConfirmed };
