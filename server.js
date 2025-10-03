@@ -1,4 +1,3 @@
-// server.js
 require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -13,13 +12,23 @@ app.use(bodyParser.json());
 let privateKey = process.env.TREASURY_PRIVATE_KEY;
 if (!privateKey) throw new Error("TREASURY_PRIVATE_KEY not set in environment!");
 
-// Clean key
+// Clean the key: remove whitespace, quotes, and newlines
 privateKey = privateKey.trim().replace(/^"|"$/g, '').replace(/\s+/g, '');
+console.log("Private key length (after cleanup):", privateKey.length);
 
+// ethers accepts 64-character hex without 0x, or 66 with 0x
+// Add 0x only if missing
+if (!privateKey.startsWith("0x")) privateKey = "0x" + privateKey;
 
 // ---------- Wallet ----------
-const wallet = new Wallet(privateKey);
-console.log("Wallet address:", wallet.address);
+let wallet;
+try {
+  wallet = new Wallet(privateKey);
+  console.log("Wallet address:", wallet.address);
+} catch (err) {
+  console.error("❌ Failed to create wallet:", err);
+  process.exit(1); // stop server if private key is invalid
+}
 
 // ---------- Routes ----------
 app.use("/api/payments", require("./routes/payments"));
