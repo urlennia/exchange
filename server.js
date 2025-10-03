@@ -8,6 +8,16 @@ require("dotenv").config();
 const app = express();
 app.use(bodyParser.json());
 
+// Ensure no double 0x
+let privateKey = process.env.TREASURY_PRIVATE_KEY;
+if (!privateKey.startsWith("0x")) {
+  privateKey = "0x" + privateKey;
+}
+
+const wallet = new ethers.Wallet(privateKey);
+console.log("Wallet address:", wallet.address);
+
+
 // ---------- Routes ----------
 app.use("/api/payments", require("./routes/payments"));
 app.use("/api/pending-orders", require("./routes/pendingOrders"));
