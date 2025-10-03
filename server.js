@@ -9,7 +9,7 @@ const app = express();
 app.use(bodyParser.json());
 
 // ------------ Wallet ----------
-const wallet = new ethers.Wallet(process.env.TREASURY_PRIVATE_KEY);
+const wallet = new ethers.Wallet("0x" + process.env.TREASURY_PRIVATE_KEY);
 console.log('Wallet address:', wallet.address);
 
 // ---------- Routes ----------
