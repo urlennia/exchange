@@ -2,26 +2,32 @@
 const { ethers } = require("ethers");
 const pool = require("../db");
 const { notifyPaymentConfirmed } = require("../server");
+const { getWalletFromEnv } = require("../utils/wallet");
 
+// ---------- Provider ----------
 const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_URL);
-const wallet = new ethers.Wallet(process.env.SERVER_PRIVATE_KEY, provider);
 
-const USDC_ABI = ["event Transfer(address indexed from, address indexed to, uint256 value)"];
+// ---------- Wallets ----------
+const treasuryWallet = getWalletFromEnv("TREASURY_PRIVATE_KEY", provider);
+
+// ---------- Contracts ----------
+const USDC_ABI = [
+  "event Transfer(address indexed from, address indexed to, uint256 value)"
+];
 const URDC_ABI = [
   "function transfer(address to, uint256 value) public returns (bool)",
   "function balanceOf(address account) view returns (uint256)"
 ];
 
-const { TREASURY_PRIVATE_KEY } = process.env;
-const wallet = new ethers.Wallet(TREASURY_PRIVATE_KEY, provider);
-
 const usdcContract = new ethers.Contract(process.env.USDC_ADDRESS, USDC_ABI, provider);
-const urdcContract = new ethers.Contract(process.env.URDC_ADDRESS, URDC_ABI, wallet);
+const urdcContract = new ethers.Contract(process.env.URDC_ADDRESS, URDC_ABI, treasuryWallet);
 
+// ---------- Config ----------
 const USDC_DECIMALS = Number(process.env.USDC_DECIMALS || 6);
 const URDC_DECIMALS = Number(process.env.URDC_DECIMALS || 18);
-const TREASURY = process.env.STATIC_RECEIVE_ADDRESS || wallet.address;
+const TREASURY = process.env.STATIC_RECEIVE_ADDRESS || treasuryWallet.address;
 
+// ---------- Listener ----------
 async function listenForUSDCPayments() {
   console.log("👂 Listening for USDC transfers...");
 
@@ -32,25 +38,24 @@ async function listenForUSDCPayments() {
       const amount = parseFloat(ethers.formatUnits(value, USDC_DECIMALS));
       console.log(`💰 Received ${amount} USDC from ${from}`);
 
-      // Fetch the latest pending order for this wallet
+      // 1. Fetch latest pending order
       const [rows] = await pool.query(
         "SELECT * FROM orders WHERE sender_wallet = ? AND status = 'pending' ORDER BY created_at ASC LIMIT 1",
         [from.toLowerCase()]
       );
-
       if (!rows.length) return;
       const order = rows[0];
 
-      // Compute URDC amount (use order rate if stored, else default 1.05)
+      // 2. Compute URDC payout
       const rate = order.urdc_rate || 1.05;
       const urdcAmount = amount * rate;
-
-      // Send URDC to buyer
       const urdcUnits = ethers.parseUnits(urdcAmount.toFixed(12), URDC_DECIMALS);
+
+      // 3. Send URDC
       const tx = await urdcContract.transfer(order.sender_wallet, urdcUnits);
       console.log(`🚀 Sending ${urdcAmount} URDC to ${order.sender_wallet}, tx: ${tx.hash}`);
 
-      // Wait for confirmation
+      // 4. Wait for confirmation
       const receipt = await tx.wait(1);
       if (receipt.status !== 1) {
         console.error("URDC transfer failed for order", order.id);
@@ -62,13 +67,13 @@ async function listenForUSDCPayments() {
         return;
       }
 
-      // Update database
+      // 5. Update DB
       await pool.query(
         "UPDATE orders SET status = ?, confirmed_usdc = ?, urdc_amount = ?, urdc_tx_hash = ?, completed_at = NOW(), updated_at = NOW() WHERE id = ?",
         ["completed", amount, urdcAmount, tx.hash, order.id]
       );
 
-      // Notify frontend via WebSocket
+      // 6. Notify frontend
       notifyPaymentConfirmed(order.sender_wallet, urdcAmount);
       console.log(`✅ Order ${order.id} completed`);
     } catch (err) {
@@ -78,4 +83,3 @@ async function listenForUSDCPayments() {
 }
 
 module.exports = { listenForUSDCPayments };
-
