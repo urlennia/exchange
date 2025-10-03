@@ -1,6 +1,7 @@
 // server.js
 const express = require("express");
 const bodyParser = require("body-parser");
+const { ethers } = require("ethers"); 
 const { WebSocketServer } = require("ws");
 require("dotenv").config();
 
