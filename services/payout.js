@@ -2,13 +2,13 @@ const { ethers } = require("ethers");
 require("dotenv").config();
 
 const URDC_ABI = ["function transfer(address to, uint256 amount) public returns (bool)"];
+
+// Use a single provider
 const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_URL);
 
-// Create wallet
+// Create wallet using utility
 const { getWalletFromEnv } = require("../utils/wallet");
-const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_URL);
-const wallet = getWalletFromEnv("WALLET_PRIVATE_KEY", provider);
-
+const wallet = getWalletFromEnv("WALLET_PRIVATE_KEY"); // provider is attached in getWalletFromEnv
 
 const urdcContract = new ethers.Contract(process.env.URDC_ADDRESS, URDC_ABI, wallet);
 
