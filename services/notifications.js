@@ -1,9 +1,9 @@
-// /services/notifications.js
-let subscribers = {}; // wallet -> ws
+// services/notifications.js
+const subscribers = {}; // walletAddress -> ws
 
-function addSubscriber(wallet, ws) {
-  subscribers[wallet.toLowerCase()] = ws;
-  console.log(`📡 Subscribed: ${wallet}`);
+function addSubscriber(walletAddress, ws) {
+  subscribers[walletAddress.toLowerCase()] = ws;
+  console.log(`📡 Subscribed: ${walletAddress}`);
 }
 
 function removeSubscriber(ws) {
@@ -20,6 +20,8 @@ function notifyPaymentConfirmed(walletAddress, urdcAmount) {
   if (ws && ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify({ type: "paymentConfirmed", wallet: walletAddress, urdcAmount }));
     console.log(`✅ Sent paymentConfirmed to ${walletAddress}`);
+  } else {
+    console.warn(`⚠️ No active WebSocket subscriber for ${walletAddress}`);
   }
 }
 
