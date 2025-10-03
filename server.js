@@ -32,8 +32,7 @@ const server = app.listen(PORT, () => {
 });
 
 // ---------- WebSocket ----------
-const wss = new WebSocketServer({ server });
-const subscribers = {}; // walletAddress -> ws
+const { addSubscriber, removeSubscriber } = require("./services/notifications");
 
 wss.on("connection", (ws) => {
   console.log("🔌 WebSocket client connected");
@@ -42,8 +41,7 @@ wss.on("connection", (ws) => {
     try {
       const data = JSON.parse(msg);
       if (data.type === "subscribe" && data.wallet) {
-        subscribers[data.wallet.toLowerCase()] = ws;
-        console.log(`📡 Subscribed: ${data.wallet}`);
+        addSubscriber(data.wallet, ws);
       }
     } catch (err) {
       console.error("WS error:", err);
@@ -51,11 +49,10 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
-    for (const wallet in subscribers) {
-      if (subscribers[wallet] === ws) delete subscribers[wallet];
-    }
+    removeSubscriber(ws);
   });
 });
+
 
 // ---------- Helper ----------
 function notifyPaymentConfirmed(walletAddress, urdcAmount) {
