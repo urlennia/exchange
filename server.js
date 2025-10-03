@@ -3,13 +3,18 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const { WebSocketServer } = require("ws");
 const { getWalletFromEnv } = require("./utils/wallet");
+const { addSubscriber, removeSubscriber } = require("./services/notifications");
 
 // ---------- App Setup ----------
 const app = express();
 app.use(bodyParser.json());
 
-// Use helper for TREASURY wallet
+// ---------- Wallet ----------
 const treasuryWallet = getWalletFromEnv("TREASURY_PRIVATE_KEY");
+console.log("TREASURY_PRIVATE_KEY wallet address:", treasuryWallet.address);
+
+const payoutWallet = getWalletFromEnv("WALLET_PRIVATE_KEY");
+console.log("WALLET_PRIVATE_KEY wallet address:", payoutWallet.address);
 
 // ---------- Routes ----------
 app.use("/api/payments", require("./routes/payments"));
@@ -28,7 +33,6 @@ const server = app.listen(PORT, () => {
 
 // ---------- WebSocket ----------
 const wss = new WebSocketServer({ server });
-const subscribers = {}; // walletAddress -> ws
 
 wss.on("connection", (ws) => {
   console.log("🔌 WebSocket client connected");
@@ -37,29 +41,12 @@ wss.on("connection", (ws) => {
     try {
       const data = JSON.parse(msg);
       if (data.type === "subscribe" && data.wallet) {
-        subscribers[data.wallet.toLowerCase()] = ws;
-        console.log(`📡 Subscribed: ${data.wallet}`);
+        addSubscriber(data.wallet, ws);
       }
     } catch (err) {
       console.error("WS error:", err);
     }
   });
 
-  ws.on("close", () => {
-    for (const wallet in subscribers) {
-      if (subscribers[wallet] === ws) delete subscribers[wallet];
-    }
-  });
+  ws.on("close", () => removeSubscriber(ws));
 });
-
-// ---------- Helper ----------
-function notifyPaymentConfirmed(walletAddress, urdcAmount) {
-  const ws = subscribers[walletAddress.toLowerCase()];
-  if (ws && ws.readyState === ws.OPEN) {
-    ws.send(JSON.stringify({ type: "paymentConfirmed", wallet: walletAddress, urdcAmount }));
-    console.log(`✅ Sent paymentConfirmed to ${walletAddress}`);
-  }
-}
-
-// ---------- Exports ----------
-module.exports = { treasuryWallet, notifyPaymentConfirmed };
