@@ -8,11 +8,9 @@ require("dotenv").config();
 const app = express();
 app.use(bodyParser.json());
 
-// Ensure no double 0x
-let privateKey = process.env.TREASURY_PRIVATE_KEY;
-if (!privateKey.startsWith("0x")) {
-  privateKey = "0x" + privateKey;
-}
+// Debug: check what is actually read from env
+console.log("TREASURY_PRIVATE_KEY length:", process.env.TREASURY_PRIVATE_KEY?.length);
+console.log("TREASURY_PRIVATE_KEY raw:", process.env.TREASURY_PRIVATE_KEY?.slice(0, 10), "..."); // only first 10 chars
 
 const wallet = new ethers.Wallet(privateKey);
 console.log("Wallet address:", wallet.address);
