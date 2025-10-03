@@ -1,7 +1,7 @@
 // /services/blockchain.js
 const { ethers } = require("ethers");
 const pool = require("../db");
-const { notifyPaymentConfirmed } = require("../server");
+const { notifyPaymentConfirmed } = require("./notifications");
 const { getWalletFromEnv } = require("../utils/wallet");
 
 // ---------- Provider ----------
