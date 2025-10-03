@@ -1,15 +1,18 @@
-// utils/wallet.js
 const { ethers } = require("ethers");
+
+// Shared provider for the whole app
+const provider = new ethers.JsonRpcProvider(
+  process.env.ALCHEMY_URL || "https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+);
 
 /**
  * Returns a Wallet instance safely from an environment variable.
  * Cleans whitespace, quotes, and ensures 0x prefix.
  *
  * @param {string} envVar - Name of the environment variable containing the private key
- * @param {ethers.Provider} [provider] - Optional provider for the wallet
  * @returns {ethers.Wallet}
  */
-function getWalletFromEnv(envVar, provider) {
+function getWalletFromEnv(envVar) {
   let privateKey = process.env[envVar];
   if (!privateKey) throw new Error(`${envVar} not set in environment!`);
 
@@ -17,9 +20,9 @@ function getWalletFromEnv(envVar, provider) {
   privateKey = privateKey.trim().replace(/^"|"$/g, '').replace(/\s+/g, '');
   if (!privateKey.startsWith("0x")) privateKey = "0x" + privateKey;
 
-  const wallet = provider ? new ethers.Wallet(privateKey, provider) : new ethers.Wallet(privateKey);
+  const wallet = new ethers.Wallet(privateKey, provider);
   console.log(`${envVar} wallet address:`, wallet.address);
   return wallet;
 }
 
-module.exports = { getWalletFromEnv };
+module.exports = { getWalletFromEnv, provider };
