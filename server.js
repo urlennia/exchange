@@ -8,12 +8,24 @@ require("dotenv").config();
 const app = express();
 app.use(bodyParser.json());
 
-// Debug: check what is actually read from env
-console.log("TREASURY_PRIVATE_KEY length:", process.env.TREASURY_PRIVATE_KEY?.length);
-console.log("TREASURY_PRIVATE_KEY raw:", process.env.TREASURY_PRIVATE_KEY?.slice(0, 10), "..."); // only first 10 chars
+const { Wallet } = require("ethers");
 
-const wallet = new ethers.Wallet(privateKey);
+// Get the key from environment
+let privateKey = process.env.TREASURY_PRIVATE_KEY;
+
+// Trim whitespace / remove accidental quotes
+privateKey = privateKey.trim().replace(/^"|"$/g, '');
+
+// Add 0x if missing
+if (!privateKey.startsWith("0x")) {
+  privateKey = "0x" + privateKey;
+}
+
+// Create the wallet
+const wallet = new Wallet(privateKey);
 console.log("Wallet address:", wallet.address);
+
+module.exports = wallet;
 
 
 // ---------- Routes ----------
