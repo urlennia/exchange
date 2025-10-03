@@ -25,7 +25,11 @@ if (!privateKey.startsWith("0x")) {
 const wallet = new Wallet(privateKey);
 console.log("Wallet address:", wallet.address);
 
-module.exports = wallet;
+module.exports = {
+  wallet,
+  notifyPaymentConfirmed
+};
+
 
 
 // ---------- Routes ----------
@@ -87,6 +91,5 @@ function notifyPaymentConfirmed(wallet, urdcAmount) {
   }
 }
 
-// Make function available to blockchain listener
-module.exports = { notifyPaymentConfirmed };
+
 
