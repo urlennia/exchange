@@ -1,4 +1,8 @@
 // server.js
+
+console.log("TREASURY_PRIVATE_KEY length:", process.env.TREASURY_PRIVATE_KEY?.length);
+console.log("TREASURY_PRIVATE_KEY raw:", process.env.TREASURY_PRIVATE_KEY);
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const { ethers } = require("ethers"); 
