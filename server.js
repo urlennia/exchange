@@ -15,7 +15,7 @@ if (!privateKey) throw new Error("TREASURY_PRIVATE_KEY not set in environment!")
 
 // Clean key
 privateKey = privateKey.trim().replace(/^"|"$/g, '').replace(/\s+/g, '');
-if (!privateKey.startsWith("0x")) privateKey = "0x" + privateKey;
+
 
 // ---------- Wallet ----------
 const wallet = new Wallet(privateKey);
