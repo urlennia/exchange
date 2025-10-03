@@ -1,20 +1,15 @@
 require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
-const { Wallet } = require("ethers");
 const { WebSocketServer } = require("ws");
+const { getWalletFromEnv } = require("./utils/wallet");
 
 // ---------- App Setup ----------
 const app = express();
 app.use(bodyParser.json());
 
-// ---------- Environment Variables ----------
-let privateKey = process.env.TREASURY_PRIVATE_KEY;
-if (!privateKey) throw new Error("TREASURY_PRIVATE_KEY not set in environment!");
-
-const { getWalletFromEnv } = require("./utils/wallet");
-const wallet = getWalletFromEnv("TREASURY_PRIVATE_KEY");
-
+// Use helper for TREASURY wallet
+const treasuryWallet = getWalletFromEnv("TREASURY_PRIVATE_KEY");
 
 // ---------- Routes ----------
 app.use("/api/payments", require("./routes/payments"));
@@ -32,7 +27,8 @@ const server = app.listen(PORT, () => {
 });
 
 // ---------- WebSocket ----------
-const { addSubscriber, removeSubscriber } = require("./services/notifications");
+const wss = new WebSocketServer({ server });
+const subscribers = {}; // walletAddress -> ws
 
 wss.on("connection", (ws) => {
   console.log("🔌 WebSocket client connected");
@@ -41,7 +37,8 @@ wss.on("connection", (ws) => {
     try {
       const data = JSON.parse(msg);
       if (data.type === "subscribe" && data.wallet) {
-        addSubscriber(data.wallet, ws);
+        subscribers[data.wallet.toLowerCase()] = ws;
+        console.log(`📡 Subscribed: ${data.wallet}`);
       }
     } catch (err) {
       console.error("WS error:", err);
@@ -49,10 +46,11 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
-    removeSubscriber(ws);
+    for (const wallet in subscribers) {
+      if (subscribers[wallet] === ws) delete subscribers[wallet];
+    }
   });
 });
-
 
 // ---------- Helper ----------
 function notifyPaymentConfirmed(walletAddress, urdcAmount) {
@@ -64,4 +62,4 @@ function notifyPaymentConfirmed(walletAddress, urdcAmount) {
 }
 
 // ---------- Exports ----------
-module.exports = { wallet, notifyPaymentConfirmed };
+module.exports = { treasuryWallet, notifyPaymentConfirmed };
