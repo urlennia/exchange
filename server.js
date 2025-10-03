@@ -7,6 +7,10 @@ require("dotenv").config();
 const app = express();
 app.use(bodyParser.json());
 
+// ------------ Wallet ----------
+const wallet = new ethers.Wallet(process.env.TREASURY_PRIVATE_KEY);
+console.log('Wallet address:', wallet.address);
+
 // ---------- Routes ----------
 app.use("/api/payments", require("./routes/payments"));
 app.use("/api/pending-orders", require("./routes/pendingOrders"));
