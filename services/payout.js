@@ -4,16 +4,11 @@ require("dotenv").config();
 const URDC_ABI = ["function transfer(address to, uint256 amount) public returns (bool)"];
 const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_URL);
 
-// Clean the private key
-let privateKey = process.env.WALLET_PRIVATE_KEY;
-if (!privateKey) throw new Error("WALLET_PRIVATE_KEY not set in environment!");
-
-privateKey = privateKey.trim().replace(/^"|"$/g, '').replace(/\s+/g, '');
-if (!privateKey.startsWith("0x")) privateKey = "0x" + privateKey;
-
 // Create wallet
-const wallet = new ethers.Wallet(privateKey, provider);
-console.log("Payout wallet address:", wallet.address);
+const { getWalletFromEnv } = require("../utils/wallet");
+const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_URL);
+const wallet = getWalletFromEnv("WALLET_PRIVATE_KEY", provider);
+
 
 const urdcContract = new ethers.Contract(process.env.URDC_ADDRESS, URDC_ABI, wallet);
 
