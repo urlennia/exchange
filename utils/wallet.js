@@ -1,8 +1,9 @@
+// utils/wallet.js
 const { ethers } = require("ethers");
 
-// Shared provider for the whole app
+// One global provider for the whole app
 const provider = new ethers.JsonRpcProvider(
-  process.env.ALCHEMY_URL || "https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+  process.env.ALCHEMY_URL || "https://eth-mainnet.g.alchemy.com/v2/xZ-9Aine7AtYo8JmA5PAsY"
 );
 
 /**
