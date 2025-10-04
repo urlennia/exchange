@@ -25,4 +25,15 @@ function notifyPaymentConfirmed(walletAddress, urdcAmount) {
   }
 }
 
-module.exports = { addSubscriber, removeSubscriber, notifyPaymentConfirmed };
+// --- NEW: notify payment failure ---
+function notifyPaymentFailed(walletAddress, reason = "Unknown error") {
+  const ws = subscribers[walletAddress.toLowerCase()];
+  if (ws && ws.readyState === ws.OPEN) {
+    ws.send(JSON.stringify({ type: "failedPayment", wallet: walletAddress, reason }));
+    console.log(`❌ Sent failedPayment to ${walletAddress}: ${reason}`);
+  } else {
+    console.warn(`⚠️ No active WebSocket subscriber for ${walletAddress}`);
+  }
+}
+
+module.exports = { addSubscriber, removeSubscriber, notifyPaymentConfirmed, notifyPaymentFailed };
